@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#7C6FE0">
+<title>Sound Explorer</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { min-height: 100vh; min-height: 100dvh; }
+  body { font-family: 'Nunito', sans-serif; background: #FDFAFF; -webkit-tap-highlight-color: transparent; }
+  button { font-family: inherit; border: none; background: none; }
+
+  @keyframes floatUp {
+    0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+    8% { opacity: 0.05; }
+    92% { opacity: 0.05; }
+    100% { transform: translateY(-8vh) rotate(340deg); opacity: 0; }
+  }
+  @keyframes cardEnter {
+    0% { opacity: 0; transform: translateY(22px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    45% { transform: scale(1.35); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+  @keyframes starFly {
+    0% { transform: translate(0,0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx),var(--ty)) scale(0.2); opacity: 0; }
+  }
+  @keyframes shakeX {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" data-type="module">
+const { useState, useEffect, useCallback, useRef } = React;
+
+/* ═══════════ SOUND DATA ═══════════ */
+
+const PITCH_SOUNDS = [
+  { emoji: "🐦", name: "Bird", pitch: "high", volume: "soft", scene: "chirping on a branch" },
+  { emoji: "🦁", name: "Lion", pitch: "low", volume: "loud", scene: "roaring in the jungle" },
+  { emoji: "🥁", name: "Big Drum", pitch: "low", volume: "loud", scene: "booming loudly" },
+  { emoji: "🐭", name: "Mouse", pitch: "high", volume: "soft", scene: "squeaking softly" },
+  { emoji: "🐘", name: "Elephant", pitch: "low", volume: "loud", scene: "stomping the ground" },
+  { emoji: "🔔", name: "Small Bell", pitch: "high", volume: "soft", scene: "tinkling lightly" },
+  { emoji: "🚛", name: "Truck", pitch: "low", volume: "loud", scene: "engine rumbling" },
+  { emoji: "🐝", name: "Bee", pitch: "high", volume: "soft", scene: "buzzing near flowers" },
+  { emoji: "🐄", name: "Cow", pitch: "low", volume: "loud", scene: "mooing in the field" },
+  { emoji: "🪈", name: "Flute", pitch: "high", volume: "soft", scene: "playing a melody" },
+  { emoji: "🐻", name: "Bear", pitch: "low", volume: "loud", scene: "growling fiercely" },
+  { emoji: "⛈️", name: "Thunder", pitch: "low", volume: "loud", scene: "crashing in the sky" },
+  { emoji: "🚒", name: "Fire Truck", pitch: "high", volume: "loud", scene: "siren wailing" },
+  { emoji: "🐸", name: "Frog", pitch: "low", volume: "soft", scene: "croaking at the pond" },
+  { emoji: "🐺", name: "Wolf", pitch: "low", volume: "loud", scene: "howling at the moon" },
+  { emoji: "🎺", name: "Tuba", pitch: "low", volume: "loud", scene: "playing deep notes" },
+  { emoji: "👶", name: "Baby", pitch: "high", volume: "loud", scene: "crying loudly" },
+];
+
+const VOLUME_SOUNDS = [
+  { emoji: "🌬️", name: "Breeze", pitch: "low", volume: "soft", scene: "blowing gently" },
+  { emoji: "😱", name: "Scream", pitch: "high", volume: "loud", scene: "yelling in surprise" },
+  { emoji: "🍃", name: "Leaves", pitch: "high", volume: "soft", scene: "rustling in the wind" },
+  { emoji: "👣", name: "Footsteps", pitch: "low", volume: "soft", scene: "tiptoeing quietly" },
+  { emoji: "🐦", name: "Bird", pitch: "high", volume: "soft", scene: "chirping on a branch" },
+  { emoji: "🦁", name: "Lion", pitch: "low", volume: "loud", scene: "roaring in the jungle" },
+  { emoji: "🥁", name: "Big Drum", pitch: "low", volume: "loud", scene: "booming loudly" },
+  { emoji: "🐭", name: "Mouse", pitch: "high", volume: "soft", scene: "squeaking softly" },
+  { emoji: "🐘", name: "Elephant", pitch: "low", volume: "loud", scene: "stomping the ground" },
+  { emoji: "🔔", name: "Small Bell", pitch: "high", volume: "soft", scene: "tinkling lightly" },
+  { emoji: "🚛", name: "Truck", pitch: "low", volume: "loud", scene: "engine rumbling" },
+  { emoji: "🐝", name: "Bee", pitch: "high", volume: "soft", scene: "buzzing near flowers" },
+  { emoji: "🐄", name: "Cow", pitch: "low", volume: "loud", scene: "mooing in the field" },
+  { emoji: "🪈", name: "Flute", pitch: "high", volume: "soft", scene: "playing a melody" },
+  { emoji: "🐻", name: "Bear", pitch: "low", volume: "loud", scene: "growling fiercely" },
+  { emoji: "⛈️", name: "Thunder", pitch: "low", volume: "loud", scene: "crashing in the sky" },
+  { emoji: "🚒", name: "Fire Truck", pitch: "high", volume: "loud", scene: "siren wailing" },
+  { emoji: "🐸", name: "Frog", pitch: "low", volume: "soft", scene: "croaking at the pond" },
+  { emoji: "🐺", name: "Wolf", pitch: "low", volume: "loud", scene: "howling at the moon" },
+  { emoji: "🎺", name: "Tuba", pitch: "low", volume: "loud", scene: "playing deep notes" },
+  { emoji: "🐱", name: "Cat Walking", pitch: "low", volume: "soft", scene: "sneaking silently" },
+];
+
+const MIX_SOUNDS = [
+  { emoji: "🐦", name: "Bird", pitch: "high", volume: "soft", scene: "chirping on a branch" },
+  { emoji: "🦁", name: "Lion", pitch: "low", volume: "loud", scene: "roaring in the jungle" },
+  { emoji: "🥁", name: "Big Drum", pitch: "low", volume: "loud", scene: "booming loudly" },
+  { emoji: "🐭", name: "Mouse", pitch: "high", volume: "soft", scene: "squeaking softly" },
+  { emoji: "🐘", name: "Elephant", pitch: "low", volume: "loud", scene: "stomping the ground" },
+  { emoji: "🔔", name: "Small Bell", pitch: "high", volume: "soft", scene: "tinkling lightly" },
+  { emoji: "🚛", name: "Truck", pitch: "low", volume: "loud", scene: "engine rumbling" },
+  { emoji: "🐝", name: "Bee", pitch: "high", volume: "soft", scene: "buzzing near flowers" },
+  { emoji: "🐄", name: "Cow", pitch: "low", volume: "loud", scene: "mooing in the field" },
+  { emoji: "🪈", name: "Flute", pitch: "high", volume: "soft", scene: "playing a melody" },
+  { emoji: "🐻", name: "Bear", pitch: "low", volume: "loud", scene: "growling fiercely" },
+  { emoji: "⛈️", name: "Thunder", pitch: "low", volume: "loud", scene: "crashing in the sky" },
+  { emoji: "🚒", name: "Fire Truck", pitch: "high", volume: "loud", scene: "siren wailing" },
+  { emoji: "🐸", name: "Frog", pitch: "low", volume: "soft", scene: "croaking at the pond" },
+  { emoji: "🎺", name: "Tuba", pitch: "low", volume: "loud", scene: "playing deep notes" },
+];
+
+const ROUNDS_PER_GAME = 8;
+const SOUNDS_BY_MODE = { pitch: PITCH_SOUNDS, volume: VOLUME_SOUNDS, mix: MIX_SOUNDS };
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ═══════════ STAR BURST ═══════════ */
+function StarBurst({ show }) {
+  if (!show) return null;
+  return (
+    <div style={{
+      position: "fixed", inset: 0, pointerEvents: "none", zIndex: 999,
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      {Array.from({ length: 8 }).map((_, i) => {
+        const angle = (i / 8) * 360;
+        const rad = (angle * Math.PI) / 180;
+        return (
+          <div key={i} style={{
+            position: "absolute", fontSize: 24,
+            animation: "starFly 0.65s ease-out forwards",
+            animationDelay: `${i * 0.025}s`,
+            "--tx": `${Math.cos(rad) * 110}px`,
+            "--ty": `${Math.sin(rad) * 110}px`,
+          }}>⭐</div>
+        );
+      })}
+      <div style={{ fontSize: 68, animation: "popIn 0.55s ease forwards", position: "absolute" }}>⭐</div>
+    </div>
+  );
+}
+
+/* ═══════════ PROGRESS BAR ═══════════ */
+function ProgressBar({ current, total, results }) {
+  return (
+    <div style={{ display: "flex", gap: 4, justifyContent: "center", padding: "0 4px", marginBottom: 14 }}>
+      {Array.from({ length: total }).map((_, i) => {
+        let bg = "#E8E5F0";
+        if (i < current) bg = results[i] ? "#6DD58C" : "#FF8A9B";
+        if (i === current) bg = "#7C6FE0";
+        return (
+          <div key={i} style={{
+            flex: 1, maxWidth: 48, height: 7, borderRadius: 7,
+            background: bg, transition: "all 0.35s ease",
+            boxShadow: i === current ? "0 0 0 2.5px rgba(124,111,224,0.28)" : "none",
+          }} />
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═══════════ SOUND CARD ═══════════ */
+function SoundCard({ sound, animKey }) {
+  return (
+    <div key={animKey} style={{
+      background: "#fff", borderRadius: 30, padding: "28px 20px 22px",
+      boxShadow: "0 10px 44px rgba(80,60,120,0.09), 0 2px 6px rgba(80,60,120,0.05)",
+      textAlign: "center", animation: "cardEnter 0.38s cubic-bezier(0.34,1.56,0.64,1)",
+      position: "relative",
+    }}>
+      <div style={{
+        width: 120, height: 120, borderRadius: "50%",
+        background: "linear-gradient(135deg, #FFF3E0, #FFF8E1, #F3E5F5)",
+        margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "inset 0 2px 10px rgba(0,0,0,0.035)",
+      }}>
+        <span style={{ fontSize: 66, lineHeight: 1, filter: "drop-shadow(0 3px 5px rgba(0,0,0,0.07))" }}>
+          {sound.emoji}
+        </span>
+      </div>
+      <div style={{
+        fontFamily: "'Baloo 2', cursive", fontSize: 26, fontWeight: 700,
+        color: "#2D2252", lineHeight: 1.2,
+      }}>
+        {sound.name}
+      </div>
+      <div style={{ fontSize: 14, color: "#A9A3C0", fontWeight: 600, marginTop: 3, fontStyle: "italic" }}>
+        {sound.scene}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════ ANSWER BUTTON ═══════════ */
+function AnswerButton({ emoji, label, helpText, color, bgIdle, borderIdle, onClick, state, disabled }) {
+  let bg = bgIdle, border = borderIdle, scale = 1, opacity = 1;
+  if (state === "correct") { bg = "#E8FFF0"; border = "#6DD58C"; scale = 1.04; }
+  else if (state === "wrong") { bg = "#FFF0F0"; border = "#FF8A9B"; }
+  else if (state === "dim") { opacity = 0.32; }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: "18px 8px", borderRadius: 22,
+        border: `3.5px solid ${border}`, background: bg,
+        cursor: disabled ? "default" : "pointer",
+        display: "flex", flexDirection: "column", alignItems: "center",
+        gap: 2, transition: "all 0.25s ease", transform: `scale(${scale})`,
+        opacity, position: "relative",
+      }}
+      onPointerDown={(e) => { if (!disabled) e.currentTarget.style.transform = "scale(0.92)"; }}
+      onPointerUp={(e) => { e.currentTarget.style.transform = `scale(${scale})`; }}
+      onPointerLeave={(e) => { e.currentTarget.style.transform = `scale(${scale})`; }}
+    >
+      <span style={{ fontSize: 34, lineHeight: 1 }}>{emoji}</span>
+      <span style={{ fontFamily: "'Baloo 2', cursive", fontSize: 20, fontWeight: 700, color }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: "#AEA8C2" }}>{helpText}</span>
+      {state === "correct" && (
+        <span style={{ position: "absolute", top: -7, right: -7, fontSize: 22, animation: "popIn 0.3s ease" }}>✅</span>
+      )}
+      {state === "wrong" && (
+        <span style={{ position: "absolute", top: -7, right: -7, fontSize: 22, animation: "shakeX 0.3s ease" }}>❌</span>
+      )}
+    </button>
+  );
+}
+
+/* ═══════════ QUIZ ENGINE ═══════════ */
+function QuizEngine({ mode, stars, setStars }) {
+  const soundPool = SOUNDS_BY_MODE[mode];
+  const [items, setItems] = useState(() => shuffle(soundPool).slice(0, ROUNDS_PER_GAME));
+  const [idx, setIdx] = useState(0);
+  const [results, setResults] = useState({});
+  const [picked, setPicked] = useState(null);
+  const [showStar, setShowStar] = useState(false);
+  const [animKey, setAnimKey] = useState(0);
+  const timerRef = useRef(null);
+  const correctCount = Object.values(results).filter(Boolean).length;
+  const done = idx >= items.length;
+  const current = items[idx];
+
+  useEffect(() => { setStars(0); }, []);
+
+  const answer = useCallback((s) => {
+    if (mode === "pitch") return s.pitch;
+    if (mode === "volume") return s.volume;
+    return `${s.pitch}-${s.volume}`;
+  }, [mode]);
+
+  const handlePick = (choice) => {
+    if (picked !== null || done) return;
+    const correct = answer(current);
+    const ok = choice === correct;
+    setPicked(choice);
+    setResults((r) => ({ ...r, [idx]: ok }));
+    if (ok) {
+      setStars((s) => s + 1);
+      setShowStar(true);
+      setTimeout(() => setShowStar(false), 750);
+    }
+    timerRef.current = setTimeout(() => {
+      setPicked(null);
+      setAnimKey((k) => k + 1);
+      setIdx((i) => i + 1);
+    }, 1200);
+  };
+
+  const restart = () => {
+    clearTimeout(timerRef.current);
+    setStars(0);
+    setItems(shuffle(soundPool).slice(0, ROUNDS_PER_GAME));
+    setIdx(0); setResults({}); setPicked(null); setAnimKey((k) => k + 1);
+  };
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  if (done) {
+    const pct = correctCount / items.length;
+    const earned = pct === 1 ? 3 : pct >= 0.7 ? 2 : pct >= 0.4 ? 1 : 0;
+    const ej = pct === 1 ? "🏆" : pct >= 0.7 ? "🌟" : pct >= 0.4 ? "👍" : "💪";
+    const msg = pct === 1 ? "PERFECT!" : pct >= 0.7 ? "Great Job!" : pct >= 0.4 ? "Good Try!" : "Keep Going!";
+    return (
+      <div style={{
+        flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", gap: 10, animation: "cardEnter 0.5s ease",
+        textAlign: "center", padding: "20px 0",
+      }}>
+        <div style={{ fontSize: 84, lineHeight: 1 }}>{ej}</div>
+        <div style={{ fontFamily: "'Baloo 2', cursive", fontSize: 32, fontWeight: 700, color: "#2D2252" }}>{msg}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#9B93B5" }}>{correctCount} / {items.length} correct</div>
+        <div style={{ fontSize: 42, letterSpacing: 6, margin: "2px 0" }}>
+          {"⭐".repeat(earned)}{"☆".repeat(3 - earned)}
+        </div>
+        <button onClick={restart} style={{
+          marginTop: 8, padding: "13px 44px", borderRadius: 50,
+          fontFamily: "'Baloo 2', cursive", fontSize: 19, fontWeight: 700,
+          color: "#fff", cursor: "pointer",
+          background: "linear-gradient(135deg, #7C6FE0, #9B8AF2)",
+          boxShadow: "0 6px 22px rgba(124,111,224,0.32)",
+        }}
+        onPointerDown={(e) => (e.currentTarget.style.transform = "scale(0.94)")}
+        onPointerUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        onPointerLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        >Play Again 🔄</button>
+      </div>
+    );
+  }
+
+  const correctAnswer = answer(current);
+  const btnState = (v) => {
+    if (!picked) return "idle";
+    if (picked === v && v === correctAnswer) return "correct";
+    if (picked === v && v !== correctAnswer) return "wrong";
+    if (v === correctAnswer) return "correct";
+    return "dim";
+  };
+
+  const pitchBtns = [
+    { value: "high", emoji: "🐭", label: "High", help: "thin & squeaky", color: "#E8732A", bg: "#FFF7F0", border: "#FFD9C2" },
+    { value: "low", emoji: "🧌", label: "Low", help: "deep & rumbly", color: "#4A7FD9", bg: "#F0F5FF", border: "#C2D5FF" },
+  ];
+  const volBtns = [
+    { value: "soft", emoji: "🤫", label: "Soft", help: "quiet & gentle", color: "#3D8C42", bg: "#F0FFF2", border: "#B8E8BB" },
+    { value: "loud", emoji: "📢", label: "Loud", help: "strong & noisy", color: "#D94055", bg: "#FFF0F2", border: "#FFC2C8" },
+  ];
+  const mixBtns = [
+    { value: "high-soft", emoji: "🐭🤫", label: "High & Soft", help: "thin + quiet", color: "#E8732A", bg: "#FFF7F0", border: "#FFD9C2" },
+    { value: "high-loud", emoji: "🐭📢", label: "High & Loud", help: "thin + noisy", color: "#D94055", bg: "#FFF0F2", border: "#FFC2C8" },
+    { value: "low-soft", emoji: "🧌🤫", label: "Low & Soft", help: "deep + quiet", color: "#4A7FD9", bg: "#F0F5FF", border: "#C2D5FF" },
+    { value: "low-loud", emoji: "🧌📢", label: "Low & Loud", help: "deep + noisy", color: "#8054C8", bg: "#F5F0FF", border: "#D5C2FF" },
+  ];
+
+  const buttons = mode === "pitch" ? pitchBtns : mode === "volume" ? volBtns : mixBtns;
+  const instruction = mode === "pitch"
+    ? "Is this sound HIGH or LOW?"
+    : mode === "volume"
+    ? "Is this sound SOFT or LOUD?"
+    : "What kind of sound is this?";
+
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <StarBurst show={showStar} />
+      <ProgressBar current={idx} total={items.length} results={results} />
+      <SoundCard sound={current} animKey={animKey} />
+      <div style={{
+        textAlign: "center", fontFamily: "'Baloo 2', cursive", fontSize: 16,
+        fontWeight: 700, color: "#9B93B5", margin: "14px 0 10px",
+      }}>
+        {instruction}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {buttons.map((b) => (
+          <AnswerButton
+            key={b.value} emoji={b.emoji} label={b.label} helpText={b.help}
+            color={b.color} bgIdle={b.bg} borderIdle={b.border}
+            state={btnState(b.value)} disabled={picked !== null}
+            onClick={() => handlePick(b.value)}
+          />
+        ))}
+      </div>
+      {picked && picked !== correctAnswer && (
+        <div style={{
+          textAlign: "center", marginTop: 10, fontFamily: "'Baloo 2', cursive",
+          fontSize: 15, fontWeight: 700, color: "#7C6FE0", animation: "fadeIn 0.25s ease",
+        }}>
+          ✨ The answer is:{" "}
+          {mode === "pitch" ? (correctAnswer === "high" ? "🐭 High" : "🧌 Low")
+           : mode === "volume" ? (correctAnswer === "soft" ? "🤫 Soft" : "📢 Loud")
+           : mixBtns.find(b => b.value === correctAnswer)?.label}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════ TAB BAR ═══════════ */
+function TabBar({ active, onChange }) {
+  const tabs = [
+    { id: "pitch", icon: "🎵", label: "High / Low", color: "#E8732A", bg: "#FFF5EB", shadow: "rgba(232,115,42,0.15)" },
+    { id: "volume", icon: "🔊", label: "Soft / Loud", color: "#3D8C42", bg: "#F0FFF2", shadow: "rgba(61,140,66,0.15)" },
+    { id: "mix", icon: "🏆", label: "Mix!", color: "#7C6FE0", bg: "#F5F0FF", shadow: "rgba(124,111,224,0.15)" },
+  ];
+  return (
+    <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+      {tabs.map((t) => {
+        const on = active === t.id;
+        return (
+          <button key={t.id} onClick={() => onChange(t.id)} style={{
+            flex: 1, padding: "11px 4px", borderRadius: 16,
+            border: on ? `3px solid ${t.color}` : "3px solid transparent",
+            background: on ? t.bg : "#fff",
+            boxShadow: on ? `0 4px 18px ${t.shadow}` : "0 2px 8px rgba(0,0,0,0.035)",
+            cursor: "pointer", display: "flex", flexDirection: "column",
+            alignItems: "center", gap: 1, transition: "all 0.22s ease",
+          }}
+          onPointerDown={(e) => (e.currentTarget.style.transform = "scale(0.95)")}
+          onPointerUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          onPointerLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          >
+            <span style={{ fontSize: 20, lineHeight: 1 }}>{t.icon}</span>
+            <span style={{
+              fontFamily: "'Baloo 2', cursive", fontSize: 13, fontWeight: 700,
+              color: on ? t.color : "#B5B0C5",
+            }}>{t.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═══════════ BACKGROUND ═══════════ */
+function BgDecor() {
+  const items = ["♪", "♫", "♬", "🎵", "🎶", "✨", "♪", "♫", "🎵", "✨"];
+  return (
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+      {items.map((n, i) => (
+        <span key={i} style={{
+          position: "absolute", left: `${5 + (i * 11) % 92}%`,
+          fontSize: 16 + (i % 4) * 5, opacity: 0.05,
+          animation: `floatUp ${16 + i * 2.5}s linear ${i * 1.8}s infinite`,
+        }}>{n}</span>
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════ APP ═══════════ */
+function App() {
+  const [tab, setTab] = useState("pitch");
+  const [stars, setStars] = useState(0);
+  const [quizKey, setQuizKey] = useState(0);
+
+  const changeTab = (t) => { setTab(t); setQuizKey((k) => k + 1); };
+
+  return (
+    <div style={{
+      fontFamily: "'Nunito', sans-serif", minHeight: "100vh",
+      background: "linear-gradient(170deg, #FDFAFF 0%, #FFF8F2 35%, #F5F0FF 70%, #F0F7FF 100%)",
+      position: "relative", overflow: "hidden",
+      userSelect: "none", WebkitTapHighlightColor: "transparent",
+    }}>
+      <BgDecor />
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 160,
+        background: "linear-gradient(180deg, rgba(124,111,224,0.05) 0%, transparent 100%)",
+        borderRadius: "0 0 50% 50%", transform: "scaleX(1.5)", zIndex: 0,
+      }} />
+      <div style={{
+        maxWidth: 480, margin: "0 auto", padding: "14px 16px 28px",
+        position: "relative", zIndex: 1, minHeight: "100vh",
+        display: "flex", flexDirection: "column",
+      }}>
+        <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
+          <div style={{
+            fontFamily: "'Baloo 2', cursive", fontSize: 32, fontWeight: 800,
+            background: "linear-gradient(135deg, #E8732A, #D94055, #7C6FE0, #3D8C42)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            backgroundClip: "text", lineHeight: 1.15,
+          }}>
+            🎵 Sound Explorer
+          </div>
+        </div>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+          padding: "6px 20px", background: "#fff", borderRadius: 50,
+          boxShadow: "0 3px 14px rgba(80,60,120,0.06)",
+          margin: "4px auto 12px", width: "fit-content",
+          fontFamily: "'Baloo 2', cursive", fontSize: 18, fontWeight: 700, color: "#2D2252",
+        }}>
+          <span style={{ fontSize: 22 }}>⭐</span>
+          <span>{stars}</span>
+          <span style={{ color: "#B0ABBD", fontWeight: 600 }}>stars</span>
+        </div>
+        <TabBar active={tab} onChange={changeTab} />
+        <QuizEngine key={quizKey} mode={tab} stars={stars} setStars={setStars} />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<script>
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then((reg) => console.log('SW registered:', reg.scope))
+      .catch((err) => console.warn('SW registration failed:', err));
+  });
+}
+</script>
+</body>
+</html>

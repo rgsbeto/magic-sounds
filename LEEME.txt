@@ -1,0 +1,83 @@
+# 🎵 Sound Explorer — PWA Offline
+
+## Archivos incluidos
+```
+sound-explorer-pwa/
+├── index.html        ← La app completa
+├── manifest.json     ← Configuración PWA
+├── sw.js             ← Service Worker (cache offline)
+├── icons/
+│   ├── icon-192.png
+│   └── icon-512.png
+└── LEEME.txt         ← Estas instrucciones
+```
+
+## Pasos para instalar en la tablet
+
+### 1. Copiar archivos a tu computadora
+Descomprimí el ZIP y dejá la carpeta `sound-explorer-pwa` en tu escritorio.
+
+### 2. Levantar un servidor local
+Abrí una terminal/PowerShell en la carpeta y ejecutá:
+
+**Opción A — Python (viene en Mac/Linux, instalable en Windows):**
+```
+cd sound-explorer-pwa
+python -m http.server 8080
+```
+
+**Opción B — PowerShell con .NET (sin instalar nada en Windows):**
+```powershell
+cd sound-explorer-pwa
+$listener = [System.Net.HttpListener]::new()
+$listener.Prefixes.Add("http://+:8080/")
+$listener.Start()
+Write-Host "Servidor corriendo en http://localhost:8080"
+while ($listener.IsListening) {
+    $ctx = $listener.GetContext()
+    $path = $ctx.Request.Url.LocalPath.TrimStart('/')
+    if ($path -eq '') { $path = 'index.html' }
+    $file = Join-Path $PWD $path
+    if (Test-Path $file) {
+        $bytes = [IO.File]::ReadAllBytes($file)
+        $ctx.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+    } else {
+        $ctx.Response.StatusCode = 404
+    }
+    $ctx.Response.Close()
+}
+```
+
+**Opción C — Node.js:**
+```
+npx serve -l 8080
+```
+
+### 3. Encontrar tu IP local
+En la misma computadora:
+- **Windows:** `ipconfig` → buscar "IPv4 Address" (ej: 192.168.1.50)
+- **Mac/Linux:** `ifconfig` o `ip addr` → buscar la IP del WiFi
+
+### 4. Abrir en la tablet
+1. Asegurate que la tablet y la computadora estén en la **misma red WiFi**
+2. En Chrome de la tablet, abrí: `http://TU_IP:8080`
+   (ejemplo: `http://192.168.1.50:8080`)
+3. La app debe cargar completamente
+
+### 5. Instalar como app (agregar a pantalla de inicio)
+1. En Chrome, tocá el menú ⋮ (tres puntos)
+2. Seleccioná **"Agregar a pantalla de inicio"** o **"Instalar app"**
+3. Confirmá el nombre "Sound Explorer"
+4. ¡Listo! Aparece un ícono en la pantalla de inicio
+
+### 6. Verificar offline
+1. Podés apagar el servidor de la computadora
+2. Activá modo avión en la tablet
+3. Abrí Sound Explorer desde el ícono → debe funcionar sin internet
+
+## Notas
+- La primera carga necesita internet para descargar las fuentes de Google
+- Después de esa primera carga, todo queda en cache
+- Si necesitás actualizar la app, cambiá `CACHE_NAME` en `sw.js`
+  (por ejemplo de 'sound-explorer-v1' a 'sound-explorer-v2')
+  y volvé a abrir la app con internet
