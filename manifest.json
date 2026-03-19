@@ -1,6 +1,6 @@
 {
-  "name": "Sound Explorer",
-  "short_name": "Sounds",
+  "name": "Magic Sounds",
+  "short_name": "Magic Sounds",
   "description": "Learn about High, Low, Soft & Loud sounds!",
   "start_url": "./index.html",
   "display": "standalone",

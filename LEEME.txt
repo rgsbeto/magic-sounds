@@ -1,4 +1,4 @@
-# 🎵 Sound Explorer — PWA Offline
+# 🎵 Magic Sounds — PWA Offline
 
 ## Archivos incluidos
 ```
@@ -67,13 +67,13 @@ En la misma computadora:
 ### 5. Instalar como app (agregar a pantalla de inicio)
 1. En Chrome, tocá el menú ⋮ (tres puntos)
 2. Seleccioná **"Agregar a pantalla de inicio"** o **"Instalar app"**
-3. Confirmá el nombre "Sound Explorer"
+3. Confirmá el nombre "Magic Sounds"
 4. ¡Listo! Aparece un ícono en la pantalla de inicio
 
 ### 6. Verificar offline
 1. Podés apagar el servidor de la computadora
 2. Activá modo avión en la tablet
-3. Abrí Sound Explorer desde el ícono → debe funcionar sin internet
+3. Abrí Magic Sounds desde el ícono → debe funcionar sin internet
 
 ## Notas
 - La primera carga necesita internet para descargar las fuentes de Google
